@@ -23,7 +23,10 @@ export function QuizInterface({ onBack }: QuizInterfaceProps) {
   const [timeLeft, setTimeLeft] = useState(0)
   const [quizStartTime, setQuizStartTime] = useState<Date | null>(null)
   const [loading, setLoading] = useState(false)
-  const { user, userProfile } = useAuth()
+  const { user, userProfile, refreshUserProfile } = useAuth()
+  
+  // FIX 1: Add state to store the final results to be displayed
+  const [finalResult, setFinalResult] = useState<QuizResult | null>(null);
 
   useEffect(() => {
     if (selectedQuiz && timeLeft > 0 && !showResults) {
@@ -39,6 +42,7 @@ export function QuizInterface({ onBack }: QuizInterfaceProps) {
     setCurrentQuestion(0)
     setSelectedAnswers(new Array(quiz.questions.length).fill(-1))
     setShowResults(false)
+    setFinalResult(null); // Clear previous results
     setTimeLeft(quiz.timeLimit || 600)
     setQuizStartTime(new Date())
   }
@@ -60,16 +64,27 @@ export function QuizInterface({ onBack }: QuizInterfaceProps) {
   const handleQuizComplete = async () => {
     if (!selectedQuiz || !user || !userProfile || !quizStartTime) return
     setLoading(true)
+    
+    // Calculate results locally first
     const correctAnswers = selectedAnswers.reduce((count, answer, index) => (answer === selectedQuiz.questions[index].correctAnswer ? count + 1 : count), 0)
     const score = Math.round((correctAnswers / selectedQuiz.questions.length) * 100)
-    const xpEarned = Math.floor((correctAnswers / selectedQuiz.questions.length) * selectedQuiz.totalPoints)
+    const xpEarned = Math.floor((score / 100) * selectedQuiz.totalPoints)
     const timeSpent = Math.floor((Date.now() - quizStartTime.getTime()) / 1000)
     const result: QuizResult = { quizId: selectedQuiz.id, score, totalQuestions: selectedQuiz.questions.length, correctAnswers, timeSpent, xpEarned, completedAt: new Date() }
+    
     try {
-      await submitQuizResult(user.uid, result, userProfile)
-      setShowResults(true)
+      // Send the result to the backend
+      const response = await submitQuizResult(user.uid, result, userProfile)
+      
+      // If the submission was successful...
+      if(response.success) {
+        setFinalResult(result); // FIX 2: Save the calculated result for display
+        setShowResults(true);   // FIX 3: Trigger the results screen
+        await refreshUserProfile(); // Refresh the user's global data
+      }
     } catch (error) {
       console.error("Error submitting quiz:", error)
+      // Optionally, you can add a state to show an error message to the user
     } finally {
       setLoading(false)
     }
@@ -81,7 +96,7 @@ export function QuizInterface({ onBack }: QuizInterfaceProps) {
     return `${mins}:${secs.toString().padStart(2, "0")}`
   }
 
-  // View 1: Quiz Selection List
+  // --- View 1: Quiz Selection List (No Changes Here) ---
   if (!selectedQuiz) {
     return (
       <div className="min-h-screen cyber-bg-gradient cyber-grid p-6 animate-in fade-in">
@@ -124,15 +139,11 @@ export function QuizInterface({ onBack }: QuizInterfaceProps) {
       </div>
     )
   }
-
-  const correctAnswers = selectedAnswers.reduce((count, answer, index) => (answer === selectedQuiz.questions[index].correctAnswer ? count + 1 : count), 0)
-  const score = Math.round((correctAnswers / selectedQuiz.questions.length) * 100)
-  const xpEarned = Math.floor((correctAnswers / selectedQuiz.questions.length) * selectedQuiz.totalPoints)
   
-  // View 2: Quiz Results Screen
-  if (showResults) {
+  // --- View 2: Quiz Results Screen (Updated to use finalResult state) ---
+  if (showResults && finalResult) {
     return (
-       <div className="min-h-screen cyber-bg-gradient cyber-grid flex items-center justify-center p-4 animate-in fade-in">
+      <div className="min-h-screen cyber-bg-gradient cyber-grid flex items-center justify-center p-4 animate-in fade-in">
         <Card className="cyber-card w-full max-w-4xl">
           <CardHeader className="text-center">
             <Award className="mx-auto h-16 w-16 cyber-text-accent cyber-glow mb-4" />
@@ -141,9 +152,9 @@ export function QuizInterface({ onBack }: QuizInterfaceProps) {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 text-center">
-              <div className="cyber-card p-4 border-cyber-primary"><div className="text-4xl font-mono font-bold cyber-text-primary">{score}%</div><div className="cyber-text text-sm">Score</div></div>
-              <div className="cyber-card p-4 border-cyber-secondary"><div className="text-4xl font-mono font-bold cyber-text-secondary">{correctAnswers}/{selectedQuiz.questions.length}</div><div className="cyber-text text-sm">Correct</div></div>
-              <div className="cyber-card p-4 border-cyber-accent"><div className="text-4xl font-mono font-bold cyber-text-accent">+{xpEarned}</div><div className="cyber-text text-sm">XP Earned</div></div>
+              <div className="cyber-card p-4 border-cyber-primary"><div className="text-4xl font-mono font-bold cyber-text-primary">{finalResult.score}%</div><div className="cyber-text text-sm">Score</div></div>
+              <div className="cyber-card p-4 border-cyber-secondary"><div className="text-4xl font-mono font-bold cyber-text-secondary">{finalResult.correctAnswers}/{finalResult.totalQuestions}</div><div className="cyber-text text-sm">Correct</div></div>
+              <div className="cyber-card p-4 border-cyber-accent"><div className="text-4xl font-mono font-bold cyber-text-accent">+{finalResult.xpEarned}</div><div className="cyber-text text-sm">XP Earned</div></div>
             </div>
             <div className="space-y-4 max-h-64 overflow-y-auto pr-2 mb-8">
               {selectedQuiz.questions.map((q, i) => {
@@ -176,7 +187,7 @@ export function QuizInterface({ onBack }: QuizInterfaceProps) {
   const question = selectedQuiz.questions[currentQuestion]
   const progress = ((currentQuestion + 1) / selectedQuiz.questions.length) * 100
 
-  // View 3: Quiz Taking Interface
+  // --- View 3: Quiz Taking Interface (No Changes Here) ---
   return (
     <div className="min-h-screen cyber-bg-gradient cyber-grid p-4 md:p-8 animate-in fade-in">
       <div className="max-w-4xl mx-auto">
@@ -189,7 +200,7 @@ export function QuizInterface({ onBack }: QuizInterfaceProps) {
           <CardHeader><CardTitle className="text-xl md:text-2xl font-jura cyber-text-bright leading-tight">Question {currentQuestion + 1}: {question.question}</CardTitle></CardHeader>
           {question.code && <CardContent><pre className="cyber-code-block"><code>{question.code}</code></pre></CardContent>}
         </Card>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        <div className="grid grid-cols-1 md-grid-cols-2 gap-4 mb-8">
           {question.options.map((option, index) => (
             <button key={index} onClick={() => handleAnswerSelect(index)} className={cn("quiz-answer-button", selectedAnswers[currentQuestion] === index && "selected")}>
               <span className="font-mono cyber-text-primary mr-4">{String.fromCharCode(65 + index)}</span>
