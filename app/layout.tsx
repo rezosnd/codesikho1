@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { Jura } from "next/font/google"
 import { AuthProvider } from "@/contexts/auth-context"
 import { ThemeProvider } from "@/components/theme-provider"
+import { FloatingAiIcon } from "@/components/floating-ai-icon" 
 import "./globals.css"
 
 // Setup the Jura font with a CSS variable
@@ -35,7 +36,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           {/* Your AuthProvider stays inside to manage user state */}
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>{children}<FloatingAiIcon /></AuthProvider>
         </ThemeProvider>
       </body>
     </html>
