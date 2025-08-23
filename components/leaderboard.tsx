@@ -16,7 +16,8 @@ interface LeaderboardProps {
 
 export function Leaderboard({ onBack }: LeaderboardProps) {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
-  const [userRank, setUserRank] = useState<LeaderboardEntry | null>(null)
+  // FIX 1: The state now correctly stores the rank as a number, matching your function.
+  const [userRank, setUserRank] = useState<number>(-1)
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState<LeaderboardFilters>({
     timeframe: "all-time",
@@ -34,15 +35,16 @@ export function Leaderboard({ onBack }: LeaderboardProps) {
       const data = await getLeaderboard(filters, 50)
       setLeaderboard(data)
       if (user) {
-        const rankData = await getUserRank(user.uid, filters)
-        setUserRank(rankData)
+        // FIX 2: This now correctly fetches just the rank number.
+        const rank = await getUserRank(user.uid)
+        setUserRank(rank)
       } else {
-        setUserRank(null)
+        setUserRank(-1)
       }
     } catch (error) {
       console.error("Error loading leaderboard:", error)
       setLeaderboard([])
-      setUserRank(null)
+      setUserRank(-1)
     } finally {
       setLoading(false)
     }
@@ -66,20 +68,20 @@ export function Leaderboard({ onBack }: LeaderboardProps) {
           <Button onClick={onBack} variant="outline" className="cyber-button-outline"><ArrowLeft className="mr-2" size={16} /> Back to Hub</Button>
         </div>
 
-        {userProfile && userRank && (
+        {/* FIX 3: This card now uses `userRank` for the rank and `userProfile` for all other stats. */}
+        {userProfile && userRank > 0 && (
           <Card className="mb-8 cyber-card border-2 border-cyber-primary shadow-lg shadow-cyber-primary/20">
             <CardContent className="p-4">
               <div className="flex items-center justify-between flex-wrap gap-4">
                 <div className="flex items-center gap-4">
-                  <div className="leaderboard-rank-badge self-start">{getRankIcon(userRank.rank)}</div>
+                  <div className="leaderboard-rank-badge self-start">{getRankIcon(userRank)}</div>
                   <Avatar className="h-12 w-12 border-2 border-cyber-primary"><AvatarImage src={`https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${userProfile.displayName}`} /><AvatarFallback>{userProfile.displayName?.charAt(0)}</AvatarFallback></Avatar>
                   <div><p className="font-bold text-lg cyber-text-bright">{userProfile.displayName} (You)</p><p className="text-sm cyber-text">Level {userProfile.level}</p></div>
                 </div>
                 <div className="flex items-center gap-6 text-sm">
-                  {/* FIX: Safely access properties and provide default values */}
-                  <div className="text-center"><div className="font-mono text-lg font-bold text-cyan-400">{(userRank.xp ?? 0).toLocaleString()}</div><div className="text-xs cyber-text">XP</div></div>
-                  <div className="text-center"><div className="font-mono text-lg font-bold text-purple-400">{userRank.badges?.length ?? 0}</div><div className="text-xs cyber-text">Badges</div></div>
-                  <div className="text-center"><div className="font-mono text-lg font-bold text-yellow-400">{userRank.completedChallenges?.length ?? 0}</div><div className="text-xs cyber-text">Challenges</div></div>
+                  <div className="text-center"><div className="font-mono text-lg font-bold text-cyan-400">{(userProfile.xp ?? 0).toLocaleString()}</div><div className="text-xs cyber-text">XP</div></div>
+                  <div className="text-center"><div className="font-mono text-lg font-bold text-purple-400">{userProfile.badges?.length ?? 0}</div><div className="text-xs cyber-text">Badges</div></div>
+                  <div className="text-center"><div className="font-mono text-lg font-bold text-yellow-400">{userProfile.completedChallenges?.length ?? 0}</div><div className="text-xs cyber-text">Challenges</div></div>
                 </div>
               </div>
             </CardContent>
@@ -107,7 +109,6 @@ export function Leaderboard({ onBack }: LeaderboardProps) {
                       <div><p className="font-semibold cyber-text-bright">{entry.displayName ?? 'Unknown User'}</p><p className="text-xs cyber-text">Level {entry.level ?? 1}</p></div>
                     </div>
                     <div className="flex items-center gap-6 text-sm">
-                      {/* FIX: Safely access properties and provide default values */}
                       <div className="text-center"><div className="font-mono font-bold text-cyan-400">{(entry.xp ?? 0).toLocaleString()}</div><div className="text-xs cyber-text">XP</div></div>
                       <div className="text-center hidden sm:block"><div className="font-mono font-bold text-purple-400">{entry.badges?.length ?? 0}</div><div className="text-xs cyber-text">Badges</div></div>
                     </div>
