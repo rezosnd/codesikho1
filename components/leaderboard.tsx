@@ -16,7 +16,7 @@ interface LeaderboardProps {
 
 export function Leaderboard({ onBack }: LeaderboardProps) {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
-  // FIX 1: The state now holds the full user rank object (or null), not just a number.
+  // This state now correctly holds the full user rank object (or null).
   const [userRank, setUserRank] = useState<LeaderboardEntry | null>(null)
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState<LeaderboardFilters>({
@@ -27,7 +27,7 @@ export function Leaderboard({ onBack }: LeaderboardProps) {
 
   useEffect(() => {
     loadLeaderboard()
-  }, [filters, user]) // Added 'user' to dependencies to refetch when user logs in
+  }, [filters, user])
 
   const loadLeaderboard = async () => {
     setLoading(true)
@@ -36,7 +36,7 @@ export function Leaderboard({ onBack }: LeaderboardProps) {
       setLeaderboard(data)
 
       if (user) {
-        // FIX 2: We now fetch the full rank object, not just the number.
+        // This now correctly fetches the full rank object.
         const rankData = await getUserRank(user.uid, filters)
         setUserRank(rankData)
       } else {
@@ -44,6 +44,9 @@ export function Leaderboard({ onBack }: LeaderboardProps) {
       }
     } catch (error) {
       console.error("Error loading leaderboard:", error)
+      // Set empty states to prevent crashing on API error
+      setLeaderboard([])
+      setUserRank(null)
     } finally {
       setLoading(false)
     }
@@ -71,7 +74,6 @@ export function Leaderboard({ onBack }: LeaderboardProps) {
         </div>
 
         {/* User's Current Position */}
-        {/* FIX 3: The user's rank card now correctly checks for the object before using it. */}
         {userProfile && userRank && (
           <Card className="mb-8 cyber-card border-2 border-cyber-primary shadow-lg shadow-cyber-primary/20">
             <CardContent className="p-4">
