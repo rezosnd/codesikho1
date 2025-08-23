@@ -1,11 +1,26 @@
+@import url('https://fonts.googleapis.com/css2?family=Jura:wght@400;700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  /* Cyberpunk color palette */
+  --cyber-primary: #00ffff; /* Electric cyan */
+  --cyber-secondary: #ff00ff; /* Magenta */
+  --cyber-accent: #00ff41; /* Acid green */
+  --cyber-warning: #ffaa00; /* Orange */
+  --cyber-bg-dark: #0a0a0f; /* Deep navy/black */
+  --cyber-bg-darker: #050508; /* Darker black */
+  --cyber-text: #89b1c4; /* Light blue-gray */
+  --cyber-text-bright: #ffffff; /* Pure white */
+  --cyber-border: #1a2332; /* Dark blue border */
+  --cyber-glow: rgba(0, 255, 255, 0.3); /* Cyan glow */
+  --cyber-shadow: rgba(0, 255, 255, 0.6); /* Cyan shadow */
+
+  /* Default styles from shadcn/ui */
   --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --foreground: oklch(0.145 0 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
@@ -75,6 +90,8 @@
 }
 
 @theme inline {
+  --font-jura: "Jura", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -117,109 +134,168 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
+    font-family: var(--font-jura);
+    background: var(--cyber-bg-dark);
+    color: var(--cyber-text);
+    background-image: radial-gradient(circle at 25% 25%, rgba(0, 255, 255, 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 75% 75%, rgba(255, 0, 255, 0.1) 0%, transparent 50%);
     @apply bg-background text-foreground;
   }
 }
 
-/* Added futuristic login form styles */
-.login-form-container {
+/* Cyberpunk UI Components */
+.cyber-card {
+  background: linear-gradient(135deg, rgba(0, 255, 255, 0.1) 0%, rgba(255, 0, 255, 0.05) 100%);
+  border: 1px solid var(--cyber-border);
+  backdrop-filter: blur(10px);
   position: relative;
-  width: 400px;
-  height: 500px;
-  max-width: 400px;
-  max-height: 500px;
-  background: #040717;
-  border-radius: 50px 5px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   overflow: hidden;
 }
 
-.login-form-container::before {
-  position: absolute;
-  width: 170%;
-  height: 170%;
+.cyber-card::before {
   content: "";
-  background-image: conic-gradient(transparent, transparent, transparent, #00ccff);
-  animation: rotate_border 6s linear infinite;
-}
-
-.login-form-container::after {
   position: absolute;
-  width: 170%;
-  height: 170%;
-  content: "";
-  background-image: conic-gradient(transparent, transparent, transparent, #ee00ff);
-  animation: rotate_border 6s linear infinite;
-  animation-delay: -3s;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
 }
 
-@keyframes rotate_border {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
+.cyber-card:hover::before {
+  left: 100%;
 }
 
-.login-form {
-  position: absolute;
-  content: "";
-  background-color: #0c1022;
-  border-radius: 50px 5px;
-  inset: 5px;
-  padding: 50px 40px;
-  z-index: 10;
-  color: #00ccff;
-}
-
-.input-group {
-  margin-top: 40px;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: start;
-}
-
-.input-text {
-  width: 95%;
-  height: 40px;
-  background: transparent;
+.cyber-button {
+  background: linear-gradient(45deg, var(--cyber-primary), var(--cyber-secondary));
   border: none;
-  outline: none;
-  border-bottom: 1px solid #00ccff;
-  font-size: 18px;
-  padding-left: 40px;
-  color: #00ccff;
-}
-
-.input-text::placeholder {
-  font-size: 15px;
-  color: #00ccff52;
+  color: var(--cyber-bg-dark);
+  font-weight: 600;
+  text-transform: uppercase;
   letter-spacing: 1px;
-}
-
-.input-icon {
-  position: absolute;
-  left: 10px;
-  z-index: 10;
+  position: relative;
+  overflow: hidden;
   transition: all 0.3s ease;
 }
 
-.glow-icon {
-  text-shadow: 0 0 10px #00ccff;
-  color: #00ccff !important;
+.cyber-button::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
 }
 
-.login-button {
-  margin-top: 40px;
+.cyber-button:hover::before {
+  left: 100%;
 }
 
-.footer {
-  margin-top: 30px;
-  display: flex;
-  justify-content: space-between;
+.cyber-button:hover {
+  box-shadow: 0 0 20px var(--cyber-glow);
+  transform: translateY(-2px);
 }
+
+.cyber-glow {
+  text-shadow: 0 0 10px currentColor;
+  filter: drop-shadow(0 0 5px currentColor);
+}
+
+.cyber-border {
+  border: 1px solid var(--cyber-primary);
+  box-shadow: 0 0 10px var(--cyber-glow);
+}
+
+.cyber-text-primary { color: var(--cyber-primary); }
+.cyber-text-secondary { color: var(--cyber-secondary); }
+.cyber-text-accent { color: var(--cyber-accent); }
+
+.cyber-bg-gradient {
+  background: linear-gradient(135deg, var(--cyber-bg-dark) 0%, var(--cyber-bg-darker) 100%);
+}
+
+/* Animated background grid */
+.cyber-grid {
+  background-image: linear-gradient(rgba(0, 255, 255, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 255, 0.1) 1px, transparent 1px);
+  background-size: 50px 50px;
+  animation: grid-move 20s linear infinite;
+}
+
+@keyframes grid-move {
+  0% { background-position: 0 0; }
+  100% { background-position: 50px 50px; }
+}
+
+/* Glitch effect */
+.cyber-glitch { position: relative; }
+.cyber-glitch::before,
+.cyber-glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+.cyber-glitch::before {
+  animation: glitch-1 0.5s infinite;
+  color: var(--cyber-secondary);
+  z-index: -1;
+}
+.cyber-glitch::after {
+  animation: glitch-2 0.5s infinite;
+  color: var(--cyber-accent);
+  z-index: -2;
+}
+
+@keyframes glitch-1 { 0%, 14%, 15%, 49%, 50%, 99%, 100% { transform: translate(0); } 15%, 49% { transform: translate(-2px, -1px); } }
+@keyframes glitch-2 { 0%, 20%, 21%, 62%, 63%, 99%, 100% { transform: translate(0); } 21%, 62% { transform: translate(2px, 1px); } }
+
+/* Particle field animation */
+.cyber-particles {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: -1;
+}
+.cyber-particles::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: radial-gradient(2px 2px at 20px 30px, var(--cyber-primary), transparent),
+    radial-gradient(2px 2px at 40px 70px, var(--cyber-secondary), transparent),
+    radial-gradient(1px 1px at 90px 40px, var(--cyber-accent), transparent),
+    radial-gradient(1px 1px at 130px 80px, var(--cyber-primary), transparent),
+    radial-gradient(2px 2px at 160px 30px, var(--cyber-secondary), transparent);
+  background-repeat: repeat;
+  background-size: 200px 100px;
+  animation: particles-float 20s linear infinite;
+  opacity: 0.3;
+}
+
+@keyframes particles-float {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(-200px, -100px); }
+}
+
+/* Cyberpunk scrollbar */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--cyber-bg-darker); border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: linear-gradient(to bottom, var(--cyber-primary), var(--cyber-secondary)); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: linear-gradient(to bottom, var(--cyber-secondary), var(--cyber-accent)); }
+
+/* Selection styling */
+::selection { background: var(--cyber-primary); color: var(--cyber-bg-dark); }
+::-moz-selection { background: var(--cyber-primary); color: var(--cyber-bg-dark); }
