@@ -539,3 +539,30 @@
 .achievement-card.rarity-rare.unlocked .card-glow { background: radial-gradient(circle at 50% 50%, rgba(96, 165, 250, 0.15) 0%, transparent 70%); }
 .achievement-card.rarity-epic.unlocked .card-glow { background: radial-gradient(circle at 50% 50%, rgba(192, 132, 252, 0.15) 0%, transparent 70%); }
 .achievement-card.rarity-legendary.unlocked .card-glow { background: radial-gradient(circle at 50% 50%, rgba(251, 191, 36, 0.2) 0%, transparent 70%); }
+.floating-ai-button {
+  position: fixed !important;
+  bottom: 2rem;
+  right: 2rem;
+  z-index: 50;
+  height: 4rem; /* 64px */
+  width: 4rem;  /* 64px */
+  border-radius: 9999px; /* full circle */
+  padding: 0; /* Remove default button padding */
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 20px var(--cyber-shadow);
+  animation: pulse-ai 2s infinite;
+}
+
+@keyframes pulse-ai {
+  0% {
+    box-shadow: 0 0 0 0 rgba(0, 255, 255, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 20px rgba(0, 255, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 255, 255, 0);
+  }
+}
