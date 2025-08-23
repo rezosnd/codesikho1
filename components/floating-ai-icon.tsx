@@ -3,12 +3,8 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Input } from "@/components/ui/input"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
 import { BrainCircuit, Send } from "lucide-react"
 import { useChat } from 'ai/react'
 import { useRef, useEffect } from "react"
@@ -20,7 +16,6 @@ export function FloatingAiIcon() {
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to the bottom when new messages appear
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
@@ -28,7 +23,6 @@ export function FloatingAiIcon() {
   }, [messages]);
 
   return (
-    // FIX 1: The main component is now a Popover instead of a Dialog
     <Popover>
       <PopoverTrigger asChild>
         <Button className="floating-ai-button cyber-button">
@@ -36,7 +30,6 @@ export function FloatingAiIcon() {
         </Button>
       </PopoverTrigger>
       
-      {/* FIX 2: PopoverContent is used for the popup window */}
       <PopoverContent
         side="top"
         align="end"
@@ -64,6 +57,8 @@ export function FloatingAiIcon() {
         </div>
         
         <div className="p-4 border-t border-cyber-border">
+          {/* --- THIS FORM IS THE FIX --- */}
+          {/* By using <form onSubmit={handleSubmit}>, we stop the page from reloading. */}
           <form onSubmit={handleSubmit} className="w-full flex items-center gap-2">
             <Input
               value={input}
@@ -71,6 +66,7 @@ export function FloatingAiIcon() {
               className="cyber-input"
               placeholder="I want to learn about..."
             />
+            {/* This button with type="submit" triggers the form's onSubmit event. */}
             <Button type="submit" className="cyber-button" size="icon">
               <Send className="h-4 w-4" />
             </Button>
