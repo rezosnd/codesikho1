@@ -2,147 +2,208 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/contexts/auth-context"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import { Trophy, Award, Crown, CheckCircle, Lock, ArrowLeft } from "lucide-react"
-import { badges } from "@/lib/badges"
-import { getAchievementProgress, calculateUserStats, type Achievement, type UserStats } from "@/lib/achievements"
+import { Badge } from "@/components/ui/badge"
+import { Clock, Trophy, CheckCircle, XCircle, ArrowLeft, BrainCircuit, Award, Repeat } from "lucide-react"
+import { type Quiz, quizzes } from "@/lib/quiz-data"
+import { submitQuizResult, type QuizResult } from "@/lib/quiz-service"
 import { cn } from "@/lib/utils"
 
-interface AchievementsProps {
+interface QuizInterfaceProps {
   onBack: () => void
 }
 
-export function Achievements({ onBack }: AchievementsProps) {
-  const [achievements, setAchievements] = useState<Achievement[]>([])
-  const [userStats, setUserStats] = useState<UserStats | null>(null)
-  const [activeTab, setActiveTab] = useState("all")
-  const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null)
-  const { userProfile, refreshUserProfile } = useAuth()
+export function QuizInterface({ onBack }: QuizInterfaceProps) {
+  const [selectedQuiz, setSelectedQuiz] = useState<Quiz | null>(null)
+  const [currentQuestion, setCurrentQuestion] = useState(0)
+  const [selectedAnswers, setSelectedAnswers] = useState<number[]>([])
+  const [showResults, setShowResults] = useState(false)
+  const [timeLeft, setTimeLeft] = useState(0)
+  const [quizStartTime, setQuizStartTime] = useState<Date | null>(null)
+  const [loading, setLoading] = useState(false)
+  const { user, userProfile } = useAuth()
 
   useEffect(() => {
-    if (userProfile) {
-      const achievementsWithProgress = badges.map((badge) => getAchievementProgress(userProfile, badge))
-      setAchievements(achievementsWithProgress)
-      const stats = calculateUserStats(userProfile)
-      setUserStats(stats)
+    if (selectedQuiz && timeLeft > 0 && !showResults) {
+      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000)
+      return () => clearTimeout(timer)
+    } else if (timeLeft === 0 && selectedQuiz && !showResults) {
+      handleQuizComplete()
     }
-  }, [userProfile])
+  }, [timeLeft, selectedQuiz, showResults])
 
-  // Automatically refresh data when the page becomes visible to the user
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        refreshUserProfile();
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [refreshUserProfile]);
+  const startQuiz = (quiz: Quiz) => {
+    setSelectedQuiz(quiz)
+    setCurrentQuestion(0)
+    setSelectedAnswers(new Array(quiz.questions.length).fill(-1))
+    setShowResults(false)
+    setTimeLeft(quiz.timeLimit || 600)
+    setQuizStartTime(new Date())
+  }
 
-  const filteredAchievements = achievements.filter((achievement) => {
-    switch (activeTab) {
-      case "unlocked": return !!achievement.unlockedAt
-      case "locked": return !achievement.unlockedAt
-      case "common": case "rare": case "epic": case "legendary": return achievement.rarity === activeTab
-      default: return true
+  const handleAnswerSelect = (answerIndex: number) => {
+    const newAnswers = [...selectedAnswers]
+    newAnswers[currentQuestion] = answerIndex
+    setSelectedAnswers(newAnswers)
+  }
+
+  const handleNext = () => {
+    if (currentQuestion < selectedQuiz!.questions.length - 1) {
+      setCurrentQuestion(currentQuestion + 1)
+    } else {
+      handleQuizComplete()
     }
-  }).sort((a, b) => (a.unlockedAt ? 0 : 1) - (b.unlockedAt ? 0 : 1));
+  }
 
-  const unlockedCount = achievements.filter((a) => a.unlockedAt).length
+  const handleQuizComplete = async () => {
+    if (!selectedQuiz || !user || !userProfile || !quizStartTime) return
+    setLoading(true)
+    const correctAnswers = selectedAnswers.reduce((count, answer, index) => (answer === selectedQuiz.questions[index].correctAnswer ? count + 1 : count), 0)
+    const score = Math.round((correctAnswers / selectedQuiz.questions.length) * 100)
+    const xpEarned = Math.floor((correctAnswers / selectedQuiz.questions.length) * selectedQuiz.totalPoints)
+    const timeSpent = Math.floor((Date.now() - quizStartTime.getTime()) / 1000)
+    const result: QuizResult = { quizId: selectedQuiz.id, score, totalQuestions: selectedQuiz.questions.length, correctAnswers, timeSpent, xpEarned, completedAt: new Date() }
+    try {
+      await submitQuizResult(user.uid, result, userProfile)
+      setShowResults(true)
+    } catch (error) {
+      console.error("Error submitting quiz:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
-  return (
-    <div className="min-h-screen cyber-bg-gradient cyber-grid p-6 animate-in fade-in">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-            <Award className="h-10 w-10 cyber-text-primary cyber-glow" />
-            <div><h1 className="text-4xl font-bold font-jura cyber-text-primary">Trophy Room</h1><p className="cyber-text">Your Unlocked Achievements</p></div>
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, "0")}`
+  }
+
+  // View 1: Quiz Selection List
+  if (!selectedQuiz) {
+    return (
+      <div className="min-h-screen cyber-bg-gradient cyber-grid p-6 animate-in fade-in">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3"><BrainCircuit className="h-10 w-10 cyber-text-primary cyber-glow" /><div><h1 className="text-4xl font-bold font-jura cyber-text-primary">Quiz Databank</h1><p className="cyber-text">Select Knowledge Packet</p></div></div>
+            <Button onClick={onBack} variant="outline" className="cyber-button-outline"><ArrowLeft className="mr-2" size={16} /> Back to Hub</Button>
           </div>
-          <Button onClick={onBack} variant="outline" className="cyber-button-outline"><ArrowLeft className="mr-2" size={16} /> Back to Hub</Button>
-        </div>
-
-        {userStats && (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <Card className="cyber-card text-center"><CardContent className="p-4"><div className="text-3xl font-mono font-bold cyber-text-primary">{userStats.totalXP.toLocaleString()}</div><div className="text-sm cyber-text">Total XP</div></CardContent></Card>
-            <Card className="cyber-card text-center"><CardContent className="p-4"><div className="text-3xl font-mono font-bold cyber-text-secondary">{userStats.currentLevel}</div><div className="text-sm cyber-text">Current Level</div></CardContent></Card>
-            <Card className="cyber-card text-center"><CardContent className="p-4"><div className="text-3xl font-mono font-bold cyber-text-accent">{unlockedCount}</div><div className="text-sm cyber-text">Achievements</div></CardContent></Card>
-            <Card className="cyber-card text-center"><CardContent className="p-4"><div className="text-3xl font-mono font-bold cyber-text-warning">{userStats.currentStreak}</div><div className="text-sm cyber-text">Current Streak</div></CardContent></Card>
-          </div>
-        )}
-
-        <div className="mb-6">
-          <Tabs value={activeTab} onValueChange={setActiveTab}><TabsList className="cyber-tabs-list"><TabsTrigger value="all">All</TabsTrigger><TabsTrigger value="unlocked">Unlocked</TabsTrigger><TabsTrigger value="locked">Locked</TabsTrigger><TabsTrigger value="rare">Rare</TabsTrigger><TabsTrigger value="epic">Epic</TabsTrigger><TabsTrigger value="legendary">Legendary</TabsTrigger></TabsList></Tabs>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredAchievements.map((achievement) => (
-            <button key={achievement.id} onClick={() => setSelectedAchievement(achievement)} className="text-left">
-              <Card className={cn("achievement-card h-full", achievement.unlockedAt ? "unlocked cyber-holo" : "locked", `rarity-${achievement.rarity}`)}>
-                <div className="card-glow"></div>
-                <CardContent className="p-5 flex flex-col justify-between h-full">
-                  <div>
-                    <div className="flex justify-between items-start">
-                      <div className={cn("text-5xl mb-4", achievement.unlockedAt ? `rarity-text-${achievement.rarity}` : 'text-cyber-border')}>{achievement.icon}</div>
-                      {achievement.unlockedAt ? <CheckCircle className="h-6 w-6 text-cyber-accent flex-shrink-0" /> : <Lock className="h-6 w-6 text-cyber-border flex-shrink-0" />}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {quizzes.map((quiz) => {
+              const isCompleted = userProfile?.completedChallenges?.includes(quiz.id);
+              return (
+                <Card key={quiz.id} className={cn("cyber-card cyber-holo flex flex-col justify-between", isCompleted && "opacity-70")}>
+                  <CardHeader>
+                    <div className="flex justify-between items-start gap-4">
+                      <CardTitle className="text-xl font-jura cyber-text-bright">{quiz.title}</CardTitle>
+                      {isCompleted ? (
+                        <Badge variant="outline" className="border-green-400 text-green-400"><CheckCircle className="mr-1 h-3 w-3" />Completed</Badge>
+                      ) : (
+                        <Badge variant="outline" className={cn("capitalize text-xs", quiz.difficulty === 'beginner' && 'border-cyan-400 text-cyan-400', quiz.difficulty === 'intermediate' && 'border-yellow-400 text-yellow-400', quiz.difficulty === 'advanced' && 'border-red-400 text-red-400')}>{quiz.difficulty}</Badge>
+                      )}
                     </div>
-                    <CardTitle className="text-lg font-jura cyber-text-bright">{achievement.name}</CardTitle>
-                    <p className="text-sm cyber-text mt-1 h-12 line-clamp-2">{achievement.description}</p>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="cyber-text text-sm mb-4 h-16 line-clamp-3">{quiz.description}</p>
+                    <div className="flex items-center justify-between text-sm cyber-text mb-4 border-t border-cyber-border pt-4">
+                      <span>{quiz.questions.length} Questions</span>
+                      <span className="flex items-center gap-2"><Clock size={16} /> {Math.floor((quiz.timeLimit || 600) / 60)} min</span>
+                      <span className="flex items-center gap-2"><Trophy size={16} /> {quiz.totalPoints} XP</span>
+                    </div>
+                    <Button onClick={() => startQuiz(quiz)} className={cn("w-full font-jura", isCompleted ? "cyber-button-outline" : "cyber-button")}>
+                      {isCompleted ? "Play Again (No XP)" : "Start Quiz"}
+                    </Button>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const correctAnswers = selectedAnswers.reduce((count, answer, index) => (answer === selectedQuiz.questions[index].correctAnswer ? count + 1 : count), 0)
+  const score = Math.round((correctAnswers / selectedQuiz.questions.length) * 100)
+  const xpEarned = Math.floor((correctAnswers / selectedQuiz.questions.length) * selectedQuiz.totalPoints)
+  
+  // View 2: Quiz Results Screen
+  if (showResults) {
+    return (
+       <div className="min-h-screen cyber-bg-gradient cyber-grid flex items-center justify-center p-4 animate-in fade-in">
+        <Card className="cyber-card w-full max-w-4xl">
+          <CardHeader className="text-center">
+            <Award className="mx-auto h-16 w-16 cyber-text-accent cyber-glow mb-4" />
+            <CardTitle className="text-3xl font-jura cyber-text-primary cyber-glow">Results Analysis</CardTitle>
+            <CardDescription className="cyber-text-bright text-lg">Knowledge Assimilation Complete.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 text-center">
+              <div className="cyber-card p-4 border-cyber-primary"><div className="text-4xl font-mono font-bold cyber-text-primary">{score}%</div><div className="cyber-text text-sm">Score</div></div>
+              <div className="cyber-card p-4 border-cyber-secondary"><div className="text-4xl font-mono font-bold cyber-text-secondary">{correctAnswers}/{selectedQuiz.questions.length}</div><div className="cyber-text text-sm">Correct</div></div>
+              <div className="cyber-card p-4 border-cyber-accent"><div className="text-4xl font-mono font-bold cyber-text-accent">+{xpEarned}</div><div className="cyber-text text-sm">XP Earned</div></div>
+            </div>
+            <div className="space-y-4 max-h-64 overflow-y-auto pr-2 mb-8">
+              {selectedQuiz.questions.map((q, i) => {
+                const isCorrect = selectedAnswers[i] === q.correctAnswer;
+                return (
+                  <div key={q.id} className={cn("p-4 rounded-lg border", isCorrect ? "border-green-400/30 bg-green-400/10" : "border-red-400/30 bg-red-400/10")}>
+                    <div className="flex items-center gap-3 mb-2">
+                      {isCorrect ? <CheckCircle className="text-green-400 h-5 w-5" /> : <XCircle className="text-red-400 h-5 w-5" />}
+                      <h4 className="font-semibold cyber-text-bright">{q.question}</h4>
+                    </div>
+                    {q.code && <pre className="cyber-code-block my-2"><code>{q.code}</code></pre>}
+                    <div className="text-sm border-t border-cyber-border pt-2 mt-2">
+                      <p className="text-green-400"><strong>Correct Answer:</strong> {q.options[q.correctAnswer]}</p>
+                      {!isCorrect && <p className="text-red-400"><strong>Your Answer:</strong> {selectedAnswers[i] >= 0 ? q.options[selectedAnswers[i]] : "Not answered"}</p>}
+                    </div>
                   </div>
-                  <div className="mt-4">
-                    {achievement.progress && !achievement.unlockedAt ? (
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-xs font-mono"><span className="cyber-text">PROGRESS</span><span className="cyber-text-primary">{achievement.progress.current}/{achievement.progress.target}</span></div>
-                        <Progress value={achievement.progress.percentage} className="cyber-progress h-2" />
-                      </div>
-                    ) : achievement.unlockedAt ? (<p className="text-xs font-mono cyber-text-accent">Unlocked!</p>) : (<p className="text-xs font-mono cyber-text">Locked</p>)}
-                  </div>
-                </CardContent>
-              </Card>
+                )
+              })}
+            </div>
+            <div className="flex justify-center gap-4 pt-4">
+              <Button onClick={() => setSelectedQuiz(null)} className="cyber-button font-jura"><Repeat className="mr-2 h-4 w-4" /> Take Another Quiz</Button>
+              <Button onClick={onBack} variant="outline" className="cyber-button-outline">Return to Hub</Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  const question = selectedQuiz.questions[currentQuestion]
+  const progress = ((currentQuestion + 1) / selectedQuiz.questions.length) * 100
+
+  // View 3: Quiz Taking Interface
+  return (
+    <div className="min-h-screen cyber-bg-gradient cyber-grid p-4 md:p-8 animate-in fade-in">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-4"><h1 className="text-2xl font-bold font-jura cyber-text-bright">{selectedQuiz.title}</h1><Badge variant="outline" className="border-cyan-400 text-cyan-400 font-mono text-sm">{currentQuestion + 1} / {selectedQuiz.questions.length}</Badge></div>
+          <div className="flex items-center gap-2 text-cyan-400 cyber-glow"><Clock size={20} /><span className="text-xl font-mono">{formatTime(timeLeft)}</span></div>
+        </div>
+        <Progress value={progress} className="cyber-progress mb-8" />
+        <Card className="cyber-card mb-8">
+          <CardHeader><CardTitle className="text-xl md:text-2xl font-jura cyber-text-bright leading-tight">Question {currentQuestion + 1}: {question.question}</CardTitle></CardHeader>
+          {question.code && <CardContent><pre className="cyber-code-block"><code>{question.code}</code></pre></CardContent>}
+        </Card>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          {question.options.map((option, index) => (
+            <button key={index} onClick={() => handleAnswerSelect(index)} className={cn("quiz-answer-button", selectedAnswers[currentQuestion] === index && "selected")}>
+              <span className="font-mono cyber-text-primary mr-4">{String.fromCharCode(65 + index)}</span>
+              <span className="text-lg">{option}</span>
             </button>
           ))}
         </div>
-
-        {filteredAchievements.length === 0 && ( <div className="text-center py-16"><p className="cyber-text text-lg">No achievements match this filter.</p></div> )}
+        <div className="flex justify-between items-center">
+          <Button onClick={() => setCurrentQuestion(Math.max(0, currentQuestion - 1))} disabled={currentQuestion === 0} variant="outline" className="cyber-button-outline">Previous</Button>
+          <Button onClick={handleNext} disabled={selectedAnswers[currentQuestion] === -1 || loading} className="cyber-button font-jura">
+            {loading ? "Submitting..." : currentQuestion === selectedQuiz.questions.length - 1 ? "Finish Quiz" : "Next Question"}
+          </Button>
+        </div>
       </div>
-
-      <Dialog open={!!selectedAchievement} onOpenChange={(isOpen) => !isOpen && setSelectedAchievement(null)}>
-        <DialogContent className="cyber-card">
-          {selectedAchievement && (
-            <>
-              <DialogHeader>
-                <div className="flex items-center gap-4">
-                   <div className={cn("text-6xl", `rarity-text-${selectedAchievement.rarity}`)}>{selectedAchievement.icon}</div>
-                   <div>
-                      <DialogTitle className="text-2xl font-jura cyber-text-bright">{selectedAchievement.name}</DialogTitle>
-                      <Badge className={cn("capitalize text-xs mt-1 rarity-badge", `rarity-${selectedAchievement.rarity}`)}>{selectedAchievement.rarity}</Badge>
-                   </div>
-                </div>
-                <DialogDescription className="cyber-text text-base pt-4 text-left">{selectedAchievement.description}</DialogDescription>
-              </DialogHeader>
-              <div className="py-4">
-                {selectedAchievement.unlockedAt ? (
-                  <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/30 text-center">
-                    <p className="font-bold text-green-400">UNLOCKED</p>
-                    <p className="text-sm cyber-text">Achieved on: {new Date(selectedAchievement.unlockedAt).toLocaleDateString()}</p>
-                  </div>
-                ) : selectedAchievement.progress && typeof selectedAchievement.progress.percentage === 'number' ? (
-                  <div className="space-y-2">
-                    <h4 className="font-jura cyber-text-bright">Your Progress</h4>
-                    <div className="flex justify-between text-sm font-mono"><span className="cyber-text">PROGRESS</span><span className="cyber-text-primary">{selectedAchievement.progress.current}/{selectedAchievement.progress.target}</span></div>
-                    <Progress value={selectedAchievement.progress.percentage} className="cyber-progress h-3" />
-                  </div>
-                ) : (
-                   <div className="p-4 rounded-lg bg-gray-500/10 border border-gray-500/30 text-center"><p className="font-bold text-gray-400">LOCKED</p></div>
-                )}
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }
