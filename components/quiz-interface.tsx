@@ -91,22 +91,34 @@ export function QuizInterface({ onBack }: QuizInterfaceProps) {
             <Button onClick={onBack} variant="outline" className="cyber-button-outline"><ArrowLeft className="mr-2" size={16} /> Back to Hub</Button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {quizzes.map((quiz) => (
-              <Card key={quiz.id} className="cyber-card cyber-holo flex flex-col justify-between">
-                <CardHeader>
-                  <div className="flex justify-between items-start gap-4"><CardTitle className="text-xl font-jura cyber-text-bright">{quiz.title}</CardTitle><Badge variant="outline" className={cn("capitalize text-xs", quiz.difficulty === 'beginner' && 'border-cyan-400 text-cyan-400', quiz.difficulty === 'intermediate' && 'border-yellow-400 text-yellow-400', quiz.difficulty === 'advanced' && 'border-red-400 text-red-400')}>{quiz.difficulty}</Badge></div>
-                </CardHeader>
-                <CardContent>
-                  <p className="cyber-text text-sm mb-4 h-16 line-clamp-3">{quiz.description}</p>
-                  <div className="flex items-center justify-between text-sm cyber-text mb-4 border-t border-cyber-border pt-4">
-                    <span>{quiz.questions.length} Questions</span>
-                    <span className="flex items-center gap-2"><Clock size={16} /> {Math.floor((quiz.timeLimit || 600) / 60)} min</span>
-                    <span className="flex items-center gap-2"><Trophy size={16} /> {quiz.totalPoints} XP</span>
-                  </div>
-                  <Button onClick={() => startQuiz(quiz)} className="w-full cyber-button font-jura">Start Quiz</Button>
-                </CardContent>
-              </Card>
-            ))}
+            {quizzes.map((quiz) => {
+              const isCompleted = userProfile?.completedChallenges?.includes(quiz.id);
+              return (
+                <Card key={quiz.id} className={cn("cyber-card cyber-holo flex flex-col justify-between", isCompleted && "opacity-70")}>
+                  <CardHeader>
+                    <div className="flex justify-between items-start gap-4">
+                      <CardTitle className="text-xl font-jura cyber-text-bright">{quiz.title}</CardTitle>
+                      {isCompleted ? (
+                        <Badge variant="outline" className="border-green-400 text-green-400"><CheckCircle className="mr-1 h-3 w-3" />Completed</Badge>
+                      ) : (
+                        <Badge variant="outline" className={cn("capitalize text-xs", quiz.difficulty === 'beginner' && 'border-cyan-400 text-cyan-400', quiz.difficulty === 'intermediate' && 'border-yellow-400 text-yellow-400', quiz.difficulty === 'advanced' && 'border-red-400 text-red-400')}>{quiz.difficulty}</Badge>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="cyber-text text-sm mb-4 h-16 line-clamp-3">{quiz.description}</p>
+                    <div className="flex items-center justify-between text-sm cyber-text mb-4 border-t border-cyber-border pt-4">
+                      <span>{quiz.questions.length} Questions</span>
+                      <span className="flex items-center gap-2"><Clock size={16} /> {Math.floor((quiz.timeLimit || 600) / 60)} min</span>
+                      <span className="flex items-center gap-2"><Trophy size={16} /> {quiz.totalPoints} XP</span>
+                    </div>
+                    <Button onClick={() => startQuiz(quiz)} className={cn("w-full font-jura", isCompleted ? "cyber-button-outline" : "cyber-button")}>
+                      {isCompleted ? "Play Again (No XP)" : "Start Quiz"}
+                    </Button>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </div>
       </div>
