@@ -1,5 +1,3 @@
-// components/leaderboard.tsx
-
 "use client"
 
 import { useState, useEffect } from "react"
@@ -7,7 +5,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Trophy, Medal, Crown, Star, TrendingUp, Users, ArrowLeft, BarChart, Calendar, Award } from "lucide-react"
+import { Trophy, Medal, Crown, Star, Users, ArrowLeft, BarChart, Calendar, Award } from "lucide-react"
 import { getLeaderboard, getUserRank, type LeaderboardEntry, type LeaderboardFilters } from "@/lib/leaderboard"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
@@ -36,6 +34,7 @@ export function Leaderboard({ onBack }: LeaderboardProps) {
       const data = await getLeaderboard(filters, 50)
       setLeaderboard(data)
       if (user) {
+        // This function now returns the full LeaderboardEntry object or null
         const rankData = await getUserRank(user.uid, filters)
         setUserRank(rankData)
       }
