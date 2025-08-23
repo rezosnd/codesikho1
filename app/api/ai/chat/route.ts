@@ -1,5 +1,8 @@
+// in app/api/ai/chat/route.ts
+
 import Groq from 'groq-sdk';
-import { GroqStream, StreamingTextResponse } from 'ai';
+// FIX 1: Import OpenAIStream instead of GroqStream
+import { OpenAIStream, StreamingTextResponse } from 'ai';
 
 // IMPORTANT: Set the runtime to edge
 export const runtime = 'edge';
@@ -11,7 +14,6 @@ const groq = new Groq({
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
-  // Create a system prompt to define the AI's personality and role
   const systemPrompt = {
     role: 'system',
     content: `You are a personalized learning assistant for a gamified coding platform called SIKHOCode.
@@ -24,10 +26,11 @@ export async function POST(req: Request) {
   const response = await groq.chat.completions.create({
     model: 'llama3-8b-8192',
     stream: true,
-    messages: [systemPrompt, ...messages], // Add the system prompt before the user's messages
+    messages: [systemPrompt, ...messages],
   });
 
-  const stream = GroqStream(response);
+  // FIX 2: Use OpenAIStream to handle the response from Groq
+  const stream = OpenAIStream(response);
 
   return new StreamingTextResponse(stream);
 }
