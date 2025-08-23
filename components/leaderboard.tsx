@@ -16,7 +16,6 @@ interface LeaderboardProps {
 
 export function Leaderboard({ onBack }: LeaderboardProps) {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
-  // This state now correctly holds the full user rank object (or null).
   const [userRank, setUserRank] = useState<LeaderboardEntry | null>(null)
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState<LeaderboardFilters>({
@@ -34,17 +33,14 @@ export function Leaderboard({ onBack }: LeaderboardProps) {
     try {
       const data = await getLeaderboard(filters, 50)
       setLeaderboard(data)
-
       if (user) {
-        // This now correctly fetches the full rank object.
         const rankData = await getUserRank(user.uid, filters)
         setUserRank(rankData)
       } else {
-        setUserRank(null) // Clear rank if user is not logged in
+        setUserRank(null)
       }
     } catch (error) {
       console.error("Error loading leaderboard:", error)
-      // Set empty states to prevent crashing on API error
       setLeaderboard([])
       setUserRank(null)
     } finally {
@@ -56,7 +52,7 @@ export function Leaderboard({ onBack }: LeaderboardProps) {
     if (rank === 1) return <Crown className="h-7 w-7 text-yellow-400" />
     if (rank === 2) return <Medal className="h-7 w-7 text-gray-300" />
     if (rank === 3) return <Award className="h-7 w-7 text-amber-500" />
-    return <span className="font-mono text-xl cyber-text-bright">{rank}</span>
+    return <span className="font-mono text-xl cyber-text-bright">{rank || '?'}</span>
   }
 
   return (
@@ -65,35 +61,31 @@ export function Leaderboard({ onBack }: LeaderboardProps) {
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
             <Trophy className="h-10 w-10 cyber-text-primary cyber-glow" />
-            <div>
-              <h1 className="text-4xl font-bold font-jura cyber-text-primary">Global Ranking Network</h1>
-              <p className="cyber-text">Top Operatives</p>
-            </div>
+            <div><h1 className="text-4xl font-bold font-jura cyber-text-primary">Global Ranking Network</h1><p className="cyber-text">Top Operatives</p></div>
           </div>
           <Button onClick={onBack} variant="outline" className="cyber-button-outline"><ArrowLeft className="mr-2" size={16} /> Back to Hub</Button>
         </div>
 
-        {/* User's Current Position */}
         {userProfile && userRank && (
           <Card className="mb-8 cyber-card border-2 border-cyber-primary shadow-lg shadow-cyber-primary/20">
             <CardContent className="p-4">
               <div className="flex items-center justify-between flex-wrap gap-4">
                 <div className="flex items-center gap-4">
                   <div className="leaderboard-rank-badge self-start">{getRankIcon(userRank.rank)}</div>
-                  <Avatar className="h-12 w-12 border-2 border-cyber-primary"><AvatarImage src={`https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${userProfile.displayName}`} /><AvatarFallback>{userProfile.displayName.charAt(0)}</AvatarFallback></Avatar>
+                  <Avatar className="h-12 w-12 border-2 border-cyber-primary"><AvatarImage src={`https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${userProfile.displayName}`} /><AvatarFallback>{userProfile.displayName?.charAt(0)}</AvatarFallback></Avatar>
                   <div><p className="font-bold text-lg cyber-text-bright">{userProfile.displayName} (You)</p><p className="text-sm cyber-text">Level {userProfile.level}</p></div>
                 </div>
                 <div className="flex items-center gap-6 text-sm">
-                  <div className="text-center"><div className="font-mono text-lg font-bold text-cyan-400">{userRank.xp.toLocaleString()}</div><div className="text-xs cyber-text">XP</div></div>
-                  <div className="text-center"><div className="font-mono text-lg font-bold text-purple-400">{userRank.badges.length}</div><div className="text-xs cyber-text">Badges</div></div>
-                  <div className="text-center"><div className="font-mono text-lg font-bold text-yellow-400">{userRank.completedChallenges.length}</div><div className="text-xs cyber-text">Challenges</div></div>
+                  {/* FIX: Safely access properties and provide default values */}
+                  <div className="text-center"><div className="font-mono text-lg font-bold text-cyan-400">{(userRank.xp ?? 0).toLocaleString()}</div><div className="text-xs cyber-text">XP</div></div>
+                  <div className="text-center"><div className="font-mono text-lg font-bold text-purple-400">{userRank.badges?.length ?? 0}</div><div className="text-xs cyber-text">Badges</div></div>
+                  <div className="text-center"><div className="font-mono text-lg font-bold text-yellow-400">{userRank.completedChallenges?.length ?? 0}</div><div className="text-xs cyber-text">Challenges</div></div>
                 </div>
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Filters */}
         <div className="mb-6 flex flex-wrap gap-4 justify-between items-center">
           <Tabs value={filters.category} onValueChange={(v) => setFilters({ ...filters, category: v as any })}>
             <TabsList className="cyber-tabs-list"><TabsTrigger value="overall"><BarChart size={16} className="mr-2"/>Overall</TabsTrigger><TabsTrigger value="quizzes"><Star size={16} className="mr-2"/>Quizzes</TabsTrigger><TabsTrigger value="coding"><Users size={16} className="mr-2"/>Coding</TabsTrigger></TabsList>
@@ -103,23 +95,21 @@ export function Leaderboard({ onBack }: LeaderboardProps) {
           </Tabs>
         </div>
 
-        {/* Leaderboard */}
         <Card className="cyber-card">
           <CardContent className="p-4">
-            {loading ? (
-              <div className="text-center py-16 cyber-text">Loading Rankings...</div>
-            ) : (
+            {loading ? (<div className="text-center py-16 cyber-text">Loading Rankings...</div>) : (
               <div className="space-y-2">
                 {leaderboard.map((entry, index) => (
                   <div key={entry.uid} className={cn("leaderboard-entry", entry.rank === 1 && "rank-1", entry.rank === 2 && "rank-2", entry.rank === 3 && "rank-3")} style={{ "--delay": `${index * 30}ms` } as React.CSSProperties}>
                     <div className="flex items-center gap-4">
                       <div className="leaderboard-rank-badge">{getRankIcon(entry.rank)}</div>
-                      <Avatar className="h-10 w-10 border-2 border-cyber-border"><AvatarImage src={`https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${entry.displayName}`} /><AvatarFallback>{entry.displayName.charAt(0)}</AvatarFallback></Avatar>
-                      <div><p className="font-semibold cyber-text-bright">{entry.displayName}</p><p className="text-xs cyber-text">Level {entry.level}</p></div>
+                      <Avatar className="h-10 w-10 border-2 border-cyber-border"><AvatarImage src={`https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${entry.displayName}`} /><AvatarFallback>{entry.displayName?.charAt(0)}</AvatarFallback></Avatar>
+                      <div><p className="font-semibold cyber-text-bright">{entry.displayName ?? 'Unknown User'}</p><p className="text-xs cyber-text">Level {entry.level ?? 1}</p></div>
                     </div>
                     <div className="flex items-center gap-6 text-sm">
-                      <div className="text-center"><div className="font-mono font-bold text-cyan-400">{entry.xp.toLocaleString()}</div><div className="text-xs cyber-text">XP</div></div>
-                      <div className="text-center hidden sm:block"><div className="font-mono font-bold text-purple-400">{entry.badges.length}</div><div className="text-xs cyber-text">Badges</div></div>
+                      {/* FIX: Safely access properties and provide default values */}
+                      <div className="text-center"><div className="font-mono font-bold text-cyan-400">{(entry.xp ?? 0).toLocaleString()}</div><div className="text-xs cyber-text">XP</div></div>
+                      <div className="text-center hidden sm:block"><div className="font-mono font-bold text-purple-400">{entry.badges?.length ?? 0}</div><div className="text-xs cyber-text">Badges</div></div>
                     </div>
                   </div>
                 ))}
