@@ -299,3 +299,56 @@
 /* Selection styling */
 ::selection { background: var(--cyber-primary); color: var(--cyber-bg-dark); }
 ::-moz-selection { background: var(--cyber-primary); color: var(--cyber-bg-dark); }
+.cyber-tabs-list {
+  background-color: var(--cyber-bg-darker);
+  border: 1px solid var(--cyber-border);
+  padding: 4px;
+}
+.cyber-tabs-list > [data-state=active] {
+  background-color: rgba(0, 255, 255, 0.1);
+  color: var(--cyber-primary);
+  text-shadow: 0 0 5px var(--cyber-primary);
+}
+
+/* Cyberpunk Code Editor Textarea */
+.cyber-editor {
+  width: 100%;
+  height: 100%;
+  background-color: var(--cyber-bg-darker);
+  color: var(--cyber-text-bright);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  padding: 1rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--cyber-border);
+  resize: none;
+  transition: all 0.2s ease-in-out;
+}
+.cyber-editor:focus {
+  outline: none;
+  border-color: var(--cyber-primary);
+  box-shadow: 0 0 15px var(--cyber-glow);
+}
+
+/* Cyberpunk Preformatted Text & Code Blocks */
+.cyber-code-block {
+  background-color: var(--cyber-bg-darker);
+  padding: 1rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--cyber-border);
+  color: var(--cyber-text-bright);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  overflow-x: auto;
+}
+.prose-cyber {
+  color: var(--cyber-text);
+  line-height: 1.7;
+}
+.prose-cyber code {
+  color: var(--cyber-secondary);
+  background-color: rgba(255, 0, 255, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
