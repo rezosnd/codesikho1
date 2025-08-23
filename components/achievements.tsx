@@ -20,9 +20,8 @@ export function Achievements({ onBack }: AchievementsProps) {
   const [achievements, setAchievements] = useState<Achievement[]>([])
   const [userStats, setUserStats] = useState<UserStats | null>(null)
   const [activeTab, setActiveTab] = useState("all")
-  // NEW: State to manage which achievement is selected for the pop-up
   const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null)
-  const { userProfile } = useAuth()
+  const { userProfile, refreshUserProfile } = useAuth()
 
   useEffect(() => {
     if (userProfile) {
@@ -32,6 +31,17 @@ export function Achievements({ onBack }: AchievementsProps) {
       setUserStats(stats)
     }
   }, [userProfile])
+
+  // Automatically refresh data when the page becomes visible to the user
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshUserProfile();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [refreshUserProfile]);
 
   const filteredAchievements = achievements.filter((achievement) => {
     switch (activeTab) {
@@ -47,7 +57,6 @@ export function Achievements({ onBack }: AchievementsProps) {
   return (
     <div className="min-h-screen cyber-bg-gradient cyber-grid p-6 animate-in fade-in">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
             <Award className="h-10 w-10 cyber-text-primary cyber-glow" />
@@ -56,7 +65,6 @@ export function Achievements({ onBack }: AchievementsProps) {
           <Button onClick={onBack} variant="outline" className="cyber-button-outline"><ArrowLeft className="mr-2" size={16} /> Back to Hub</Button>
         </div>
 
-        {/* User Stats Overview */}
         {userStats && (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <Card className="cyber-card text-center"><CardContent className="p-4"><div className="text-3xl font-mono font-bold cyber-text-primary">{userStats.totalXP.toLocaleString()}</div><div className="text-sm cyber-text">Total XP</div></CardContent></Card>
@@ -66,19 +74,12 @@ export function Achievements({ onBack }: AchievementsProps) {
           </div>
         )}
 
-        {/* Achievement Filters */}
         <div className="mb-6">
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="cyber-tabs-list">
-              <TabsList className="cyber-tabs-list"><TabsTrigger value="all">All</TabsTrigger><TabsTrigger value="unlocked">Unlocked</TabsTrigger><TabsTrigger value="locked">Locked</TabsTrigger><TabsTrigger value="rare">Rare</TabsTrigger><TabsTrigger value="epic">Epic</TabsTrigger><TabsTrigger value="legendary">Legendary</TabsTrigger></TabsList>
-            </TabsList>
-          </Tabs>
+          <Tabs value={activeTab} onValueChange={setActiveTab}><TabsList className="cyber-tabs-list"><TabsTrigger value="all">All</TabsTrigger><TabsTrigger value="unlocked">Unlocked</TabsTrigger><TabsTrigger value="locked">Locked</TabsTrigger><TabsTrigger value="rare">Rare</TabsTrigger><TabsTrigger value="epic">Epic</TabsTrigger><TabsTrigger value="legendary">Legendary</TabsTrigger></TabsList></Tabs>
         </div>
 
-        {/* Achievements Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredAchievements.map((achievement) => (
-            // NEW: Added a button wrapper to make the whole card clickable
             <button key={achievement.id} onClick={() => setSelectedAchievement(achievement)} className="text-left">
               <Card className={cn("achievement-card h-full", achievement.unlockedAt ? "unlocked cyber-holo" : "locked", `rarity-${achievement.rarity}`)}>
                 <div className="card-glow"></div>
@@ -105,12 +106,9 @@ export function Achievements({ onBack }: AchievementsProps) {
           ))}
         </div>
 
-        {filteredAchievements.length === 0 && (
-          <div className="text-center py-16"><p className="cyber-text text-lg">No achievements match this filter.</p></div>
-        )}
+        {filteredAchievements.length === 0 && ( <div className="text-center py-16"><p className="cyber-text text-lg">No achievements match this filter.</p></div> )}
       </div>
 
-      {/* --- NEW: Interactive Details Dialog --- */}
       <Dialog open={!!selectedAchievement} onOpenChange={(isOpen) => !isOpen && setSelectedAchievement(null)}>
         <DialogContent className="cyber-card">
           {selectedAchievement && (
@@ -131,7 +129,7 @@ export function Achievements({ onBack }: AchievementsProps) {
                     <p className="font-bold text-green-400">UNLOCKED</p>
                     <p className="text-sm cyber-text">Achieved on: {new Date(selectedAchievement.unlockedAt).toLocaleDateString()}</p>
                   </div>
-                ) : selectedAchievement.progress ? (
+                ) : selectedAchievement.progress && typeof selectedAchievement.progress.percentage === 'number' ? (
                   <div className="space-y-2">
                     <h4 className="font-jura cyber-text-bright">Your Progress</h4>
                     <div className="flex justify-between text-sm font-mono"><span className="cyber-text">PROGRESS</span><span className="cyber-text-primary">{selectedAchievement.progress.current}/{selectedAchievement.progress.target}</span></div>
