@@ -410,3 +410,32 @@
 .animate-spin-slow {
   animation: spin 5s linear infinite;
 }
+.game-block {
+  padding: 0.75rem 1rem;
+  background-color: transparent;
+  border: 1px solid var(--cyber-border);
+  color: var(--cyber-text);
+  border-radius: var(--radius-lg);
+  transition: all 0.2s ease-in-out;
+}
+
+.game-block:hover:not(:disabled) {
+  background-color: rgba(0, 255, 255, 0.1);
+  border-color: var(--cyber-primary);
+  color: var(--cyber-text-bright);
+}
+
+.game-block:disabled,
+.game-block.matched {
+  background-color: rgba(0, 255, 65, 0.1); /* --cyber-accent */
+  border-color: rgba(0, 255, 65, 0.2);
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.game-block.selected {
+  background-color: rgba(0, 255, 255, 0.2);
+  border-color: var(--cyber-primary);
+  color: var(--cyber-text-bright);
+  box-shadow: 0 0 15px var(--cyber-glow);
+}
