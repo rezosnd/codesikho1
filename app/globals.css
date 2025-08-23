@@ -379,3 +379,34 @@
   color: var(--cyber-text-bright);
   box-shadow: 0 0 15px var(--cyber-glow);
 }
+.cyber-input {
+  background-color: var(--cyber-bg-darker);
+  border: 1px solid var(--cyber-border);
+  color: var(--cyber-text-bright);
+  font-family: var(--font-jura);
+}
+.cyber-input:focus {
+  outline: none;
+  border-color: var(--cyber-primary);
+  box-shadow: 0 0 15px var(--cyber-glow);
+}
+
+/* Custom Profile Badges */
+.cyber-badge-level {
+  background: linear-gradient(45deg, var(--cyber-primary), var(--cyber-secondary));
+  color: var(--cyber-bg-dark);
+  font-weight: bold;
+  border: none;
+  text-shadow: none;
+}
+
+.rarity-badge { border: none; font-weight: bold; color: var(--cyber-bg-dark); }
+.rarity-common { background-color: #9ca3af; } /* gray-400 */
+.rarity-rare { background-color: #3b82f6; } /* blue-500 */
+.rarity-epic { background-color: #a855f7; } /* purple-500 */
+.rarity-legendary { background: linear-gradient(45deg, #f59e0b, #ef4444); } /* amber-500 to red-500 */
+
+/* Slower spin animation for profile avatar */
+.animate-spin-slow {
+  animation: spin 5s linear infinite;
+}
