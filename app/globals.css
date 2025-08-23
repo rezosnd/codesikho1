@@ -490,3 +490,52 @@
   border: 1px solid var(--cyber-border);
   clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
 }
+
+.achievement-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--cyber-border);
+  background: var(--cyber-bg-darker);
+  transition: all 0.3s ease;
+}
+
+.achievement-card:hover {
+  transform: translateY(-5px);
+  border-color: var(--cyber-primary);
+}
+
+.achievement-card .card-glow {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+/* Locked vs Unlocked States */
+.achievement-card.locked {
+  filter: grayscale(80%);
+  opacity: 0.6;
+}
+
+.achievement-card.unlocked:hover .card-glow {
+  opacity: 1;
+}
+
+/* Rarity-based glows and text colors */
+.achievement-card.rarity-common.unlocked { border-color: rgba(156, 163, 175, 0.5); } /* gray-400 */
+.achievement-card.rarity-rare.unlocked { border-color: rgba(96, 165, 250, 0.5); } /* blue-400 */
+.achievement-card.rarity-epic.unlocked { border-color: rgba(192, 132, 252, 0.5); } /* purple-400 */
+.achievement-card.rarity-legendary.unlocked { border-color: rgba(251, 191, 36, 0.5); } /* yellow-400 */
+
+.rarity-text-common { color: #9ca3af; }
+.rarity-text-rare { color: #60a5fa; }
+.rarity-text-epic { color: #c084fc; }
+.rarity-text-legendary { color: #facc15; }
+
+.achievement-card.rarity-rare.unlocked .card-glow { background: radial-gradient(circle at 50% 50%, rgba(96, 165, 250, 0.15) 0%, transparent 70%); }
+.achievement-card.rarity-epic.unlocked .card-glow { background: radial-gradient(circle at 50% 50%, rgba(192, 132, 252, 0.15) 0%, transparent 70%); }
+.achievement-card.rarity-legendary.unlocked .card-glow { background: radial-gradient(circle at 50% 50%, rgba(251, 191, 36, 0.2) 0%, transparent 70%); }
