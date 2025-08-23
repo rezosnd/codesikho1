@@ -8,10 +8,17 @@ import { Input } from "@/components/ui/input"
 import { BrainCircuit, Send } from "lucide-react"
 import { useChat } from 'ai/react'
 import { useRef, useEffect } from "react"
+import { useAuth } from "@/contexts/auth-context" // 
 
 export function FloatingAiIcon() {
+  const { userProfile } = useAuth(); // 
+
   const { messages, input, handleInputChange, handleSubmit } = useChat({
     api: '/api/ai/chat',
+    // Send the user's profile to the backend with every request
+    body: {
+      userProfile: userProfile,
+    },
   });
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -21,6 +28,11 @@ export function FloatingAiIcon() {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [messages]);
+
+  // Don't render the chat button if the user profile hasn't loaded yet
+  if (!userProfile) {
+    return null;
+  }
 
   return (
     <Popover>
@@ -57,8 +69,6 @@ export function FloatingAiIcon() {
         </div>
         
         <div className="p-4 border-t border-cyber-border">
-          {/* --- THIS FORM IS THE FIX --- */}
-          {/* By using <form onSubmit={handleSubmit}>, we stop the page from reloading. */}
           <form onSubmit={handleSubmit} className="w-full flex items-center gap-2">
             <Input
               value={input}
@@ -66,7 +76,6 @@ export function FloatingAiIcon() {
               className="cyber-input"
               placeholder="I want to learn about..."
             />
-            {/* This button with type="submit" triggers the form's onSubmit event. */}
             <Button type="submit" className="cyber-button" size="icon">
               <Send className="h-4 w-4" />
             </Button>
