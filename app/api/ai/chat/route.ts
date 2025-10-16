@@ -3,7 +3,7 @@
 import Groq from 'groq-sdk';
 import { OpenAIStream, StreamingTextResponse } from 'ai';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
