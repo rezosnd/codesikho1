@@ -1,17 +1,35 @@
 import Groq from 'groq-sdk';
 import { OpenAIStream, StreamingTextResponse } from 'ai';
 
-export const runtime = 'nodejs';
+export const runtime = 'edge'; // Changed to edge for better performance
 
+// Validate API key on startup
 const apiKey = process.env.GROQ_API_KEY;
 
 if (!apiKey) {
   console.error("❌ Missing GROQ_API_KEY in environment variables!");
+  console.error("Please add GROQ_API_KEY to your .env.local file");
 }
 
-const groq = new Groq({ apiKey });
+const groq = new Groq({ 
+  apiKey: apiKey 
+});
 
 export async function POST(req: Request) {
+  // Check if API key is available
+  if (!apiKey) {
+    return new Response(
+      JSON.stringify({ 
+        error: "API configuration error",
+        message: "Groq API key is not configured. Please contact the administrator."
+      }),
+      { 
+        status: 500, 
+        headers: { "Content-Type": "application/json" } 
+      }
+    );
+  }
+
   try {
     const { messages, userProfile } = await req.json();
 
@@ -53,14 +71,28 @@ Address the user by their name. Tailor your learning suggestions to their curren
   } catch (error: any) {
     console.error("❌ Groq API Error:", error);
     
-    // Return a more detailed error response
+    // Handle specific error types
+    let errorMessage = "AI service is temporarily unavailable";
+    let statusCode = 500;
+
+    if (error.status === 401) {
+      errorMessage = "Invalid API key configuration";
+      statusCode = 401;
+    } else if (error.status === 429) {
+      errorMessage = "Rate limit exceeded. Please try again later.";
+      statusCode = 429;
+    } else if (error.message?.includes('API key')) {
+      errorMessage = "Invalid API key. Please check your configuration.";
+      statusCode = 401;
+    }
+
     return new Response(
       JSON.stringify({ 
-        error: error.message || "Groq request failed",
-        details: error.type || "Unknown error"
+        error: errorMessage,
+        details: error.message || "Unknown error occurred"
       }),
       { 
-        status: 500, 
+        status: statusCode, 
         headers: { "Content-Type": "application/json" } 
       }
     );
