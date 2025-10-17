@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Input } from "@/components/ui/input"
-import { BrainCircuit, Send, Loader2 } from "lucide-react"
+import { BrainCircuit, Send, Loader2, AlertCircle } from "lucide-react"
 import { useChat } from 'ai/react'
 import { useRef, useEffect, useState } from "react"
 import { useAuth } from "@/contexts/auth-context"
@@ -12,6 +12,7 @@ export function FloatingAiIcon() {
   const { userProfile } = useAuth();
   const [isMounted, setIsMounted] = useState(false);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const { 
     messages, 
@@ -27,7 +28,20 @@ export function FloatingAiIcon() {
     },
     onError: (error) => {
       console.error('Chat error:', error);
+      try {
+        // Try to parse the error response for better error messages
+        const errorData = JSON.parse(error.message);
+        setErrorMessage(errorData.error || "Failed to send message");
+      } catch {
+        setErrorMessage(error.message || "Failed to send message");
+      }
     },
+    onResponse: (response) => {
+      // Reset error on successful response
+      if (response.ok) {
+        setErrorMessage(null);
+      }
+    }
   });
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -44,15 +58,23 @@ export function FloatingAiIcon() {
     }
   }, [messages]);
 
-  // Custom submit handler to prevent default form behavior
+  // Reset error when popover opens/closes
+  useEffect(() => {
+    if (!isPopoverOpen) {
+      setErrorMessage(null);
+    }
+  }, [isPopoverOpen]);
+
+  // Custom submit handler
   const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setErrorMessage(null); // Clear previous errors
     if (input.trim() && !isLoading) {
       handleSubmit(e);
     }
   };
 
-  // Don't render anything until mounted and user profile is loaded
+  // Don't render anything until mounted
   if (!isMounted) {
     return null;
   }
@@ -61,7 +83,7 @@ export function FloatingAiIcon() {
     <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
       <PopoverTrigger asChild>
         <Button 
-          className="floating-ai-button cyber-button fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg z-50"
+          className="floating-ai-button cyber-button fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg z-50 hover:scale-110 transition-transform duration-200"
           disabled={!userProfile}
         >
           {!userProfile ? (
@@ -76,7 +98,7 @@ export function FloatingAiIcon() {
         side="top"
         align="end"
         sideOffset={10}
-        className="cyber-card p-0 w-96 h-[70vh] flex flex-col border-2 border-cyber-primary bg-cyber-bg-dark"
+        className="cyber-card p-0 w-96 h-[70vh] flex flex-col border-2 border-cyber-primary bg-cyber-bg-dark shadow-2xl"
       >
         {/* Header */}
         <div className="p-4 border-b border-cyber-border bg-cyber-bg-darker">
@@ -99,12 +121,21 @@ export function FloatingAiIcon() {
               <Loader2 className="h-6 w-6 animate-spin text-cyber-primary" />
               <span className="ml-2 cyber-text">Loading your profile...</span>
             </div>
-          ) : error ? (
-            <div className="flex justify-center items-center h-20">
-              <div className="text-red-400 text-center">
-                <p>Failed to send message</p>
-                <p className="text-sm">Please try again</p>
+          ) : errorMessage ? (
+            <div className="flex flex-col items-center justify-center h-20 text-center space-y-2">
+              <AlertCircle className="h-8 w-8 text-red-400" />
+              <div className="text-red-400">
+                <p className="font-medium">Connection Error</p>
+                <p className="text-xs mt-1">{errorMessage}</p>
               </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="cyber-button mt-2"
+                onClick={() => setErrorMessage(null)}
+              >
+                Try Again
+              </Button>
             </div>
           ) : messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center space-y-3">
@@ -156,15 +187,17 @@ export function FloatingAiIcon() {
                   ? "Please wait..." 
                   : isLoading 
                     ? "AI is thinking..." 
+                    : errorMessage
+                    ? "Fix configuration to continue..."
                     : "I want to learn about..."
               }
-              disabled={!userProfile || isLoading}
+              disabled={!userProfile || isLoading || !!errorMessage}
             />
             <Button 
               type="submit" 
               className="cyber-button" 
               size="icon"
-              disabled={!userProfile || isLoading || !input.trim()}
+              disabled={!userProfile || isLoading || !input.trim() || !!errorMessage}
             >
               {isLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -179,8 +212,8 @@ export function FloatingAiIcon() {
             <span>
               {userProfile ? `Level ${userProfile.level} • ${userProfile.xp} XP` : "Loading..."}
             </span>
-            <span>
-              {isLoading ? "AI is typing..." : "Ready"}
+            <span className={errorMessage ? "text-red-400" : ""}>
+              {errorMessage ? "Configuration Error" : isLoading ? "AI is typing..." : "Ready"}
             </span>
           </div>
         </div>
