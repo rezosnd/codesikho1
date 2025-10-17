@@ -1,9 +1,8 @@
 import Groq from 'groq-sdk';
 import { OpenAIStream, StreamingTextResponse } from 'ai';
 
-export const runtime = 'edge'; // Changed to edge for better performance
+export const runtime = 'edge';
 
-// Validate API key on startup
 const apiKey = process.env.GROQ_API_KEY;
 
 if (!apiKey) {
@@ -14,6 +13,25 @@ if (!apiKey) {
 const groq = new Groq({ 
   apiKey: apiKey 
 });
+
+// List of available Groq models (as of 2024)
+const AVAILABLE_MODELS = {
+  // Fast models (good for chat)
+  'llama-3.1-8b-instant': 'llama-3.1-8b-instant',
+  'llama-3.2-1b-preview': 'llama-3.2-1b-preview',
+  'llama-3.2-3b-preview': 'llama-3.2-3b-preview',
+  
+  // Powerful models (better quality, slightly slower)
+  'llama-3.1-70b-versatile': 'llama-3.1-70b-versatile',
+  'llama-3.1-405b-reasoning': 'llama-3.1-405b-reasoning',
+  
+  // Specialized models
+  'mixtral-8x7b-32768': 'mixtral-8x7b-32768',
+  'gemma2-9b-it': 'gemma2-9b-it'
+};
+
+// Choose a model - using a fast one for chat
+const SELECTED_MODEL = AVAILABLE_MODELS['llama-3.1-8b-instant'];
 
 export async function POST(req: Request) {
   // Check if API key is available
@@ -37,7 +55,10 @@ export async function POST(req: Request) {
     Your personality is futuristic, encouraging, and helpful, like a friendly AI from a cyberpunk world.
     When a user asks to learn a topic, provide a clear, concise list of sub-topics or a mini-curriculum.
     Keep your responses focused on programming, computer science, and web development.
-    Your goal is to guide the user on their learning journey. Be encouraging and end your responses by asking if they're ready to dive into the first sub-topic.`;
+    Your goal is to guide the user on their learning journey. Be encouraging and end your responses by asking if they're ready to dive into the first sub-topic.
+
+Important: Be concise but helpful. Format your responses with clear bullet points or numbered lists when appropriate.
+Keep responses under 300 words unless absolutely necessary.`;
 
     if (userProfile) {
       const quizzesCompleted = userProfile.completedChallenges?.filter((id: string) => !id.startsWith("coding-")).length || 0;
@@ -57,12 +78,15 @@ Address the user by their name. Tailor your learning suggestions to their curren
 
     const systemPrompt = { role: 'system', content: systemContent };
 
+    console.log(`Using Groq model: ${SELECTED_MODEL}`);
+
     const response = await groq.chat.completions.create({
-      model: 'llama3-8b-8192',
+      model: SELECTED_MODEL,
       stream: true,
       messages: [systemPrompt, ...messages],
       temperature: 0.7,
       max_tokens: 1024,
+      top_p: 0.9,
     });
 
     const stream = OpenAIStream(response);
@@ -84,12 +108,16 @@ Address the user by their name. Tailor your learning suggestions to their curren
     } else if (error.message?.includes('API key')) {
       errorMessage = "Invalid API key. Please check your configuration.";
       statusCode = 401;
+    } else if (error.message?.includes('decommissioned') || error.message?.includes('model')) {
+      errorMessage = "AI model configuration needs update. Please contact support.";
+      statusCode = 400;
     }
 
     return new Response(
       JSON.stringify({ 
         error: errorMessage,
-        details: error.message || "Unknown error occurred"
+        details: error.message || "Unknown error occurred",
+        type: error.type || "api_error"
       }),
       { 
         status: statusCode, 
